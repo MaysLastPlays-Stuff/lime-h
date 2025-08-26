@@ -135,20 +135,26 @@ class AndroidPlatform extends PlatformTarget
 		var hxml = targetDirectory + "/haxe/" + buildType + ".hxml";
 		var sourceSet = destination + "/app/src/main";
 
-		var hasARMV5 = (ArrayTools.containsValue(project.architectures, Architecture.ARMV5)
-			|| ArrayTools.containsValue(project.architectures, Architecture.ARMV6));
-		var hasARMV7 = ArrayTools.containsValue(project.architectures, Architecture.ARMV7);
+		if (project.targetFlags.exists("ARMV7"))
+			project.architectures = [Architecture.ARMV7];
+		else if (project.targetFlags.exists("ARM64"))
+			project.architectures = [Architecture.ARM64];
+		else if (project.targetFlags.exists("X86"))
+			project.architectures = [Architecture.X86];
+		else if (project.targetFlags.exists("X86_64"))
+			project.architectures = [Architecture.X64];
+
 		var hasARM64 = ArrayTools.containsValue(project.architectures, Architecture.ARM64);
-		var hasX86 = ArrayTools.containsValue(project.architectures, Architecture.X86);
+		var hasARMV7 = ArrayTools.containsValue(project.architectures, Architecture.ARMV7);
 		var hasX64 = ArrayTools.containsValue(project.architectures, Architecture.X64);
+		var hasX86 = ArrayTools.containsValue(project.architectures, Architecture.X86);
 
 		var architectures = [];
 
-		if (hasARMV5) architectures.push(Architecture.ARMV5);
-		if (hasARMV7) architectures.push(Architecture.ARMV7);
 		if (hasARM64) architectures.push(Architecture.ARM64);
-		if (hasX86) architectures.push(Architecture.X86);
+		if (hasARMV7) architectures.push(Architecture.ARMV7);
 		if (hasX64) architectures.push(Architecture.X64);
+		if (hasX86) architectures.push(Architecture.X86);
 
 		if (architectures.length == 0)
 		{
@@ -161,20 +167,13 @@ class AndroidPlatform extends PlatformTarget
 
 		for (architecture in architectures)
 		{
-			var haxeParams = [hxml, "-D", "android", "-D", "PLATFORM=android-21"];
-			var cppParams = ["-Dandroid", "-DPLATFORM=android-21"];
-			var path = sourceSet + "/jniLibs/armeabi";
+			var minSDKVer = project.config.getInt("android.minimum-sdk-version", 21);
+			var haxeParams = [hxml, "-D", "android", "-D", 'HXCPP_ANDROID_PLATFORM=$minSDKVer'];
+			var cppParams = ["-Dandroid", '-DHXCPP_ANDROID_PLATFORM=$minSDKVer'];
+			var path = sourceSet + "/jniLibs";
 			var suffix = ".so";
 
-			if (architecture == Architecture.ARMV7)
-			{
-				haxeParams.push("-D");
-				haxeParams.push("HXCPP_ARMV7");
-				cppParams.push("-DHXCPP_ARMV7");
-				path = sourceSet + "/jniLibs/armeabi-v7a";
-				suffix = "-v7.so";
-			}
-			else if (architecture == Architecture.ARM64)
+			if (architecture == Architecture.ARM64)
 			{
 				haxeParams.push("-D");
 				haxeParams.push("HXCPP_ARM64");
@@ -182,13 +181,13 @@ class AndroidPlatform extends PlatformTarget
 				path = sourceSet + "/jniLibs/arm64-v8a";
 				suffix = "-64.so";
 			}
-			else if (architecture == Architecture.X86)
+			else if (architecture == Architecture.ARMV7)
 			{
 				haxeParams.push("-D");
-				haxeParams.push("HXCPP_X86");
-				cppParams.push("-DHXCPP_X86");
-				path = sourceSet + "/jniLibs/x86";
-				suffix = "-x86.so";
+				haxeParams.push("HXCPP_ARMV7");
+				cppParams.push("-DHXCPP_ARMV7");
+				path = sourceSet + "/jniLibs/armeabi-v7a";
+				suffix = "-v7.so";
 			}
 			else if (architecture == Architecture.X64)
 			{
@@ -197,6 +196,14 @@ class AndroidPlatform extends PlatformTarget
 				cppParams.push("-DHXCPP_X86_64");
 				path = sourceSet + "/jniLibs/x86_64";
 				suffix = "-x86_64.so";
+			}
+			else if (architecture == Architecture.X86)
+			{
+				haxeParams.push("-D");
+				haxeParams.push("HXCPP_X86");
+				cppParams.push("-DHXCPP_X86");
+				path = sourceSet + "/jniLibs/x86";
+				suffix = "-x86.so";
 			}
 
 			for (ndll in project.ndlls)
@@ -213,11 +220,11 @@ class AndroidPlatform extends PlatformTarget
 			System.copyIfNewer(targetDirectory + "/obj/libApplicationMain" + (project.debug ? "-debug" : "") + suffix, path + "/libApplicationMain.so");
 		}
 
-		if (!hasARMV5)
+		if (!hasARM64)
 		{
-			if (FileSystem.exists(sourceSet + "/jniLibs/armeabi"))
+			if (FileSystem.exists(sourceSet + "/jniLibs/arm64-v8a"))
 			{
-				System.removeDirectory(sourceSet + "/jniLibs/armeabi");
+				System.removeDirectory(sourceSet + "/jniLibs/arm64-v8a");
 			}
 		}
 
@@ -229,11 +236,11 @@ class AndroidPlatform extends PlatformTarget
 			}
 		}
 
-		if (!hasARM64)
+		if (!hasX64)
 		{
-			if (FileSystem.exists(sourceSet + "/jniLibs/arm64-v8a"))
+			if (FileSystem.exists(sourceSet + "/jniLibs/x86_64"))
 			{
-				System.removeDirectory(sourceSet + "/jniLibs/arm64-v8a");
+				System.removeDirectory(sourceSet + "/jniLibs/x86_64");
 			}
 		}
 
@@ -242,14 +249,6 @@ class AndroidPlatform extends PlatformTarget
 			if (FileSystem.exists(sourceSet + "/jniLibs/x86"))
 			{
 				System.removeDirectory(sourceSet + "/jniLibs/x86");
-			}
-		}
-
-		if (!hasX64)
-		{
-			if (FileSystem.exists(sourceSet + "/jniLibs/x86_64"))
-			{
-				System.removeDirectory(sourceSet + "/jniLibs/x86_64");
 			}
 		}
 
@@ -358,21 +357,26 @@ class AndroidPlatform extends PlatformTarget
 
 	public override function rebuild():Void
 	{
-		var armv5 = (command == "rebuild"
-			|| ArrayTools.containsValue(project.architectures, Architecture.ARMV5)
-			|| ArrayTools.containsValue(project.architectures, Architecture.ARMV6));
-		var armv7 = (command == "rebuild" || ArrayTools.containsValue(project.architectures, Architecture.ARMV7));
-		var arm64 = (command == "rebuild" || ArrayTools.containsValue(project.architectures, Architecture.ARM64));
-		var x86 = (command == "rebuild" || ArrayTools.containsValue(project.architectures, Architecture.X86));
-		var x64 = (/*command == "rebuild" ||*/ ArrayTools.containsValue(project.architectures, Architecture.X64));
-
 		var commands = [];
 
-		if (armv5) commands.push(["-Dandroid", "-DPLATFORM=android-21"]);
-		if (armv7) commands.push(["-Dandroid", "-DHXCPP_ARMV7", "-DHXCPP_ARM7", "-DPLATFORM=android-21"]);
-		if (arm64) commands.push(["-Dandroid", "-DHXCPP_ARM64", "-DPLATFORM=android-21"]);
-		if (x86) commands.push(["-Dandroid", "-DHXCPP_X86", "-DPLATFORM=android-21"]);
-		if (x64) commands.push(["-Dandroid", "-DHXCPP_X86_64", "-DPLATFORM=android-21"]);
+		switch (System.hostArchitecture)
+		{
+			case X64:
+				if (targetFlags.exists("hl"))
+					commands.push(["-Dmac", "-DHXCPP_CLANG", "-DHXCPP_M64", "-Dhashlink"]);
+				else if (!targetFlags.exists("32"))
+					commands.push(["-Dmac", "-DHXCPP_CLANG", "-DHXCPP_M64"]);
+				else
+					commands.push(["-Dmac", "-DHXCPP_CLANG", "-DHXCPP_M32"]);
+			case X86:
+				commands.push(["-Dmac", "-DHXCPP_CLANG", "-DHXCPP_M32"]);
+			case ARM64:
+				commands.push(["-Dmac", "-DHXCPP_CLANG", "-DHXCPP_ARM64"]);
+			default:
+		}
+
+		if (targetFlags.exists("hl"))
+			CPPHelper.rebuild(project, commands, null, "BuildHashlink.xml");
 
 		CPPHelper.rebuild(project, commands);
 	}

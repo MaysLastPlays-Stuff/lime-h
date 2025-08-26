@@ -24,7 +24,7 @@
  * Google Author(s): Behdad Esfahbod
  */
 
-#include "hb-private.hh"
+#include "hb.hh"
 
 #include "hb.h"
 #include "hb-ot.h"
@@ -32,17 +32,22 @@
 #include "hb-ft.h"
 #endif
 
-#include <stdio.h>
+#ifdef HB_NO_OPEN
+#define hb_blob_create_from_file_or_fail(x)  hb_blob_get_empty ()
+#endif
 
 int
 main (int argc, char **argv)
 {
-  if (argc != 2) {
-    fprintf (stderr, "usage: %s font-file\n", argv[0]);
-    exit (1);
-  }
+  bool ret = true;
 
-  hb_blob_t *blob = hb_blob_create_from_file (argv[1]);
+#ifndef HB_NO_BUFFER_SERIALIZE
+
+  if (argc < 2)
+    argv[1] = (char *) "/dev/null";
+
+  hb_blob_t *blob = hb_blob_create_from_file_or_fail (argv[1]);
+  assert (blob);
   hb_face_t *face = hb_face_create (blob, 0 /* first face */);
   hb_blob_destroy (blob);
   blob = nullptr;
@@ -51,39 +56,59 @@ main (int argc, char **argv)
   hb_font_t *font = hb_font_create (face);
   hb_face_destroy (face);
   hb_font_set_scale (font, upem, upem);
-  hb_ot_font_set_funcs (font);
-#ifdef HAVE_FREETYPE
-  //hb_ft_font_set_funcs (font);
-#endif
 
   hb_buffer_t *buf;
   buf = hb_buffer_create ();
 
-  bool ret = true;
   char line[BUFSIZ], out[BUFSIZ];
-  while (fgets (line, sizeof(line), stdin) != nullptr)
+  while (fgets (line, sizeof(line), stdin))
   {
     hb_buffer_clear_contents (buf);
 
-    const char *p = line;
-    while (hb_buffer_deserialize_glyphs (buf,
+    while (true)
+    {
+      const char *p = line;
+      if (!hb_buffer_deserialize_glyphs (buf,
 					 p, -1, &p,
 					 font,
-					 HB_BUFFER_SERIALIZE_FORMAT_JSON))
-      ;
-    if (*p && *p != '\n')
-      ret = false;
+					 HB_BUFFER_SERIALIZE_FORMAT_TEXT))
+      {
+        ret = false;
+        break;
+      }
 
-    hb_buffer_serialize_glyphs (buf, 0, hb_buffer_get_length (buf),
-				out, sizeof (out), nullptr,
-				font, HB_BUFFER_SERIALIZE_FORMAT_JSON,
-				HB_BUFFER_SERIALIZE_FLAG_DEFAULT);
-    puts (out);
+      if (*p == '\n')
+        break;
+      if (p == line)
+      {
+	ret = false;
+	break;
+      }
+
+      unsigned len = strlen (p);
+      memmove (line, p, len);
+      if (!fgets (line + len, sizeof(line) - len, stdin))
+        line[len] = '\0';
+    }
+
+    unsigned count = hb_buffer_get_length (buf);
+    for (unsigned offset = 0; offset < count;)
+    {
+      unsigned len;
+      offset += hb_buffer_serialize_glyphs (buf, offset, count,
+					    out, sizeof (out), &len,
+					    font, HB_BUFFER_SERIALIZE_FORMAT_TEXT,
+					    HB_BUFFER_SERIALIZE_FLAG_GLYPH_FLAGS);
+      fwrite (out, 1, len, stdout);
+    }
+    fputs ("\n", stdout);
   }
 
   hb_buffer_destroy (buf);
 
   hb_font_destroy (font);
+
+#endif
 
   return !ret;
 }

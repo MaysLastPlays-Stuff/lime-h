@@ -1,11 +1,47 @@
-//======== Copyright (c) 2017 Valve Corporation, All rights reserved. =========
-//
-// Purpose: HID device abstraction temporary stub
-//
-//=============================================================================
+/*
+  Simple DirectMedia Layer
+  Copyright (C) 2021 Valve Corporation
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+*/
 #include "../../SDL_internal.h"
 
-#ifdef SDL_JOYSTICK_HIDAPI
+#ifndef SDL_HIDAPI_DISABLED
+
+#include "SDL_hints.h"
+
+#define hid_init                        PLATFORM_hid_init
+#define hid_exit                        PLATFORM_hid_exit
+#define hid_enumerate                   PLATFORM_hid_enumerate
+#define hid_free_enumeration            PLATFORM_hid_free_enumeration
+#define hid_open                        PLATFORM_hid_open
+#define hid_open_path                   PLATFORM_hid_open_path
+#define hid_write                       PLATFORM_hid_write
+#define hid_read_timeout                PLATFORM_hid_read_timeout
+#define hid_read                        PLATFORM_hid_read
+#define hid_set_nonblocking             PLATFORM_hid_set_nonblocking
+#define hid_send_feature_report         PLATFORM_hid_send_feature_report
+#define hid_get_feature_report          PLATFORM_hid_get_feature_report
+#define hid_close                       PLATFORM_hid_close
+#define hid_get_manufacturer_string     PLATFORM_hid_get_manufacturer_string
+#define hid_get_product_string          PLATFORM_hid_get_product_string
+#define hid_get_serial_number_string    PLATFORM_hid_get_serial_number_string
+#define hid_get_indexed_string          PLATFORM_hid_get_indexed_string
+#define hid_error                       PLATFORM_hid_error
 
 #include <CoreBluetooth/CoreBluetooth.h>
 #include <QuartzCore/QuartzCore.h>
@@ -170,11 +206,7 @@ typedef enum
 @property (nonatomic) int nPendingPairs;
 @property (nonatomic, strong) CBCentralManager *centralManager;
 @property (nonatomic, strong) NSMapTable<CBPeripheral *, HIDBLEDevice *> *deviceMap;
-#if OS_OBJECT_USE_OBJC
 @property (nonatomic, retain) dispatch_queue_t bleSerialQueue;
-#else
-@property (nonatomic, assign) dispatch_queue_t bleSerialQueue;
-#endif
 
 + (instancetype)sharedInstance;
 - (void)startScan:(int)duration;
@@ -198,23 +230,28 @@ typedef enum
 		sharedInstance.nPendingScans = 0;
 		sharedInstance.nPendingPairs = 0;
 
-		[[NSNotificationCenter defaultCenter] addObserver:sharedInstance selector:@selector(appWillResignActiveNotification:) name: UIApplicationWillResignActiveNotification object:nil];
-		[[NSNotificationCenter defaultCenter] addObserver:sharedInstance selector:@selector(appDidBecomeActiveNotification:) name:UIApplicationDidBecomeActiveNotification object:nil];
+        // Bluetooth is currently only used for Steam Controllers, so check that hint
+        // before initializing Bluetooth, which will prompt the user for permission.
+		if ( SDL_GetHintBoolean( SDL_HINT_JOYSTICK_HIDAPI_STEAM, SDL_FALSE ) )
+		{
+			[[NSNotificationCenter defaultCenter] addObserver:sharedInstance selector:@selector(appWillResignActiveNotification:) name: UIApplicationWillResignActiveNotification object:nil];
+			[[NSNotificationCenter defaultCenter] addObserver:sharedInstance selector:@selector(appDidBecomeActiveNotification:) name:UIApplicationDidBecomeActiveNotification object:nil];
 
-		// receive reports on a high-priority serial-queue. optionally put writes on the serial queue to avoid logical
-		// race conditions talking to the controller from multiple threads, although BLE fragmentation/assembly means
-		// that we can still screw this up.
-		// most importantly we need to consume reports at a high priority to avoid the OS thinking we aren't really
-		// listening to the BLE device, as iOS on slower devices may stop delivery of packets to the app WITHOUT ACTUALLY
-		// DISCONNECTING FROM THE DEVICE if we don't react quickly enough to their delivery.
-		// see also the error-handling states in the peripheral delegate to re-open the device if it gets closed
-		sharedInstance.bleSerialQueue = dispatch_queue_create( "com.valvesoftware.steamcontroller.ble", DISPATCH_QUEUE_SERIAL );
-		dispatch_set_target_queue( sharedInstance.bleSerialQueue, dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_HIGH, 0 ) );
+			// receive reports on a high-priority serial-queue. optionally put writes on the serial queue to avoid logical
+			// race conditions talking to the controller from multiple threads, although BLE fragmentation/assembly means
+			// that we can still screw this up.
+			// most importantly we need to consume reports at a high priority to avoid the OS thinking we aren't really
+			// listening to the BLE device, as iOS on slower devices may stop delivery of packets to the app WITHOUT ACTUALLY
+			// DISCONNECTING FROM THE DEVICE if we don't react quickly enough to their delivery.
+			// see also the error-handling states in the peripheral delegate to re-open the device if it gets closed
+			sharedInstance.bleSerialQueue = dispatch_queue_create( "com.valvesoftware.steamcontroller.ble", DISPATCH_QUEUE_SERIAL );
+			dispatch_set_target_queue( sharedInstance.bleSerialQueue, dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_HIGH, 0 ) );
 
-		// creating a CBCentralManager will always trigger a future centralManagerDidUpdateState:
-		// where any scanning gets started or connecting to existing peripherals happens, it's never already in a
-		// powered-on state for a newly launched application.
-		sharedInstance.centralManager = [[CBCentralManager alloc] initWithDelegate:sharedInstance queue:sharedInstance.bleSerialQueue];
+			// creating a CBCentralManager will always trigger a future centralManagerDidUpdateState:
+			// where any scanning gets started or connecting to existing peripherals happens, it's never already in a
+			// powered-on state for a newly launched application.
+			sharedInstance.centralManager = [[CBCentralManager alloc] initWithDelegate:sharedInstance queue:sharedInstance.bleSerialQueue];
+		}
 		sharedInstance.deviceMap = [[NSMapTable alloc] initWithKeyOptions:NSMapTableWeakMemory valueOptions:NSMapTableStrongMemory capacity:4];
 	});
 	return sharedInstance;
@@ -253,13 +290,20 @@ typedef enum
 {
 	static uint64_t s_unLastUpdateTick = 0;
 	static mach_timebase_info_data_t s_timebase_info;
+	uint64_t ticksNow;
+	NSArray<CBPeripheral *> *peripherals;
+
+	if ( self.centralManager == nil )
+    {
+		return 0;
+    }
 
 	if (s_timebase_info.denom == 0)
 	{
 		mach_timebase_info( &s_timebase_info );
 	}
 
-	uint64_t ticksNow = mach_approximate_time();
+	ticksNow = mach_approximate_time();
 	if ( !bForce && ( ( (ticksNow - s_unLastUpdateTick) * s_timebase_info.numer ) / s_timebase_info.denom ) < (5ull * NSEC_PER_SEC) )
 		return (int)self.deviceMap.count;
 
@@ -276,7 +320,7 @@ typedef enum
 	if ( self.nPendingPairs > 0 )
 		return (int)self.deviceMap.count;
 
-	NSArray<CBPeripheral *> *peripherals = [self.centralManager retrieveConnectedPeripheralsWithServices: @[ [CBUUID UUIDWithString:@"180A"]]];
+	peripherals = [self.centralManager retrieveConnectedPeripheralsWithServices: @[ [CBUUID UUIDWithString:@"180A"]]];
 	for ( CBPeripheral *peripheral in peripherals )
 	{
 		// we already know this peripheral
@@ -286,8 +330,9 @@ typedef enum
 		NSLog( @"connected peripheral: %@", peripheral );
 		if ( [peripheral.name isEqualToString:@"SteamController"] )
 		{
+			HIDBLEDevice *steamController;
 			self.nPendingPairs += 1;
-			HIDBLEDevice *steamController = [[HIDBLEDevice alloc] initWithPeripheral:peripheral];
+			steamController = [[HIDBLEDevice alloc] initWithPeripheral:peripheral];
 			[self.deviceMap setObject:steamController forKey:peripheral];
 			[self.centralManager connectPeripheral:peripheral options:nil];
 		}
@@ -299,6 +344,11 @@ typedef enum
 // manual API for folks to start & stop scanning
 - (void)startScan:(int)duration
 {
+	if ( self.centralManager == nil )
+	{
+		return;
+	}
+
 	NSLog( @"BLE: requesting scan for %d seconds", duration );
 	@synchronized (self)
 	{
@@ -318,6 +368,11 @@ typedef enum
 
 - (void)stopScan
 {
+	if ( self.centralManager == nil )
+	{
+		return;
+	}
+
 	NSLog( @"BLE: stopping scan" );
 	@synchronized (self)
 	{
@@ -400,9 +455,10 @@ typedef enum
 
 	if ( [localName isEqualToString:@"SteamController"] )
 	{
+		HIDBLEDevice *steamController;
 		NSLog( @"%@ : %@ - %@", log, peripheral, advertisementData );
 		self.nPendingPairs += 1;
-		HIDBLEDevice *steamController = [[HIDBLEDevice alloc] initWithPeripheral:peripheral];
+		steamController = [[HIDBLEDevice alloc] initWithPeripheral:peripheral];
 		[self.deviceMap setObject:steamController forKey:peripheral];
 		[self.centralManager connectPeripheral:peripheral options:nil];
 	}
@@ -423,7 +479,7 @@ typedef enum
 
 
 // Core Bluetooth devices calling back on event boundaries of their run-loops. so annoying.
-static void process_pending_events()
+static void process_pending_events(void)
 {
 	CFRunLoopRunResult res;
 	do
@@ -713,7 +769,7 @@ int HID_API_EXPORT HID_API_CALL hid_exit(void)
 	return 0;
 }
 
-void HID_API_EXPORT HID_API_CALL hid_ble_scan( bool bStart )
+void HID_API_EXPORT HID_API_CALL hid_ble_scan( int bStart )
 {
 	HIDBLEManager *bleManager = HIDBLEManager.sharedInstance;
 	if ( bStart )
@@ -726,7 +782,12 @@ void HID_API_EXPORT HID_API_CALL hid_ble_scan( bool bStart )
 	}
 }
 
-hid_device * HID_API_EXPORT hid_open_path( const char *path, int bExclusive /* = false */ )
+HID_API_EXPORT hid_device * HID_API_CALL hid_open(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number)
+{
+	return NULL;
+}
+
+HID_API_EXPORT hid_device * HID_API_CALL hid_open_path( const char *path, int bExclusive /* = false */ )
 {
 	hid_device *result = NULL;
 	NSString *nssPath = [NSString stringWithUTF8String:path];
@@ -779,15 +840,28 @@ int HID_API_EXPORT hid_set_nonblocking(hid_device *dev, int nonblock)
 struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, unsigned short product_id)
 { @autoreleasepool {
 	struct hid_device_info *root = NULL;
+	const char *hint = SDL_GetHint(SDL_HINT_HIDAPI_IGNORE_DEVICES);
 
-	if ( ( vendor_id == 0 && product_id == 0 ) ||
-		 ( vendor_id == VALVE_USB_VID && product_id == D0G_BLE2_PID ) )
+	/* See if there are any devices we should skip in enumeration */
+	if (hint) {
+		char vendor_match[16], product_match[16];
+		SDL_snprintf(vendor_match, sizeof(vendor_match), "0x%.4x/0x0000", VALVE_USB_VID);
+		SDL_snprintf(product_match, sizeof(product_match), "0x%.4x/0x%.4x", VALVE_USB_VID, D0G_BLE2_PID);
+		if (SDL_strcasestr(hint, vendor_match) || SDL_strcasestr(hint, product_match)) {
+			return NULL;
+		}
+	}
+
+	if ( ( vendor_id == 0 || vendor_id == VALVE_USB_VID ) &&
+	     ( product_id == 0 || product_id == D0G_BLE2_PID ) )
 	{
+		NSEnumerator<HIDBLEDevice *> *devices;
 		HIDBLEManager *bleManager = HIDBLEManager.sharedInstance;
 		[bleManager updateConnectedSteamControllers:false];
-		NSEnumerator<HIDBLEDevice *> *devices = [bleManager.deviceMap objectEnumerator];
+		devices = [bleManager.deviceMap objectEnumerator];
 		for ( HIDBLEDevice *device in devices )
 		{
+			struct hid_device_info *device_info;
 			// there are several brief windows in connecting to an already paired device and
 			// one long window waiting for users to confirm pairing where we don't want
 			// to consider a device ready - if we hand it back to SDL or another
@@ -805,7 +879,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 				}
 				continue;
 			}
-			struct hid_device_info *device_info = (struct hid_device_info *)malloc( sizeof(struct hid_device_info) );
+			device_info = (struct hid_device_info *)malloc( sizeof(struct hid_device_info) );
 			memset( device_info, 0, sizeof(struct hid_device_info) );
 			device_info->next = root;
 			root = device_info;
@@ -838,6 +912,11 @@ int HID_API_EXPORT_CALL hid_get_serial_number_string(hid_device *dev, wchar_t *s
 	static wchar_t s_wszSerial[] = L"12345";
 	wcsncpy( string, s_wszSerial, sizeof(s_wszSerial)/sizeof(s_wszSerial[0]) );
 	return 0;
+}
+
+int HID_API_EXPORT_CALL hid_get_indexed_string(hid_device *dev, int string_index, wchar_t *string, size_t maxlen)
+{
+	return -1;
 }
 
 int HID_API_EXPORT hid_write(hid_device *dev, const unsigned char *data, size_t length)
@@ -874,12 +953,13 @@ int HID_API_EXPORT hid_send_feature_report(hid_device *dev, const unsigned char 
 
 int HID_API_EXPORT hid_get_feature_report(hid_device *dev, unsigned char *data, size_t length)
 {
+	size_t written;
     HIDBLEDevice *device_handle = (__bridge HIDBLEDevice *)dev->device_handle;
 
 	if ( !device_handle.connected )
 		return -1;
 
-	size_t written = [device_handle get_feature_report:data[0] into:data];
+	written = [device_handle get_feature_report:data[0] into:data];
 
 	return written == length-1 ? (int)length : (int)written;
 }
@@ -896,6 +976,7 @@ int HID_API_EXPORT hid_read(hid_device *dev, unsigned char *data, size_t length)
 
 int HID_API_EXPORT hid_read_timeout(hid_device *dev, unsigned char *data, size_t length, int milliseconds)
 {
+	int result;
     HIDBLEDevice *device_handle = (__bridge HIDBLEDevice *)dev->device_handle;
 
 	if ( !device_handle.connected )
@@ -905,7 +986,7 @@ int HID_API_EXPORT hid_read_timeout(hid_device *dev, unsigned char *data, size_t
 	{
 		NSLog( @"hid_read_timeout with non-zero wait" );
 	}
-	int result = (int)[device_handle read_input_report:data];
+	result = (int)[device_handle read_input_report:data];
 #if FEATURE_REPORT_LOGGING
 	NSLog( @"HIDBLE:hid_read_timeout (%d) [%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x]", result,
 		  data[1], data[2], data[3], data[4], data[5], data[6],
@@ -916,4 +997,9 @@ int HID_API_EXPORT hid_read_timeout(hid_device *dev, unsigned char *data, size_t
 	return result;
 }
 
-#endif /* SDL_JOYSTICK_HIDAPI */
+HID_API_EXPORT const wchar_t* HID_API_CALL hid_error(hid_device *dev)
+{
+	return NULL;
+}
+
+#endif /* !SDL_HIDAPI_DISABLED */
