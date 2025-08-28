@@ -280,11 +280,6 @@ jobs:
         with:
           ndk-version: r28c
 
-      - uses: actions/setup-java@v3
-        with:
-          distribution: "zulu"
-          java-version: 24
-
       - uses: krdlab/setup-haxe@v1
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
@@ -295,7 +290,7 @@ jobs:
 
       - name: Install Haxe dependencies
         run: |
-          haxelib install hxcpp 4.2.1 --quiet
+          haxelib install hxcpp --quiet
           haxelib install format --quiet
           haxelib install hxp --quiet
 
