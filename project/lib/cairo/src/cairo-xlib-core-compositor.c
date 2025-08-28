@@ -632,10 +632,9 @@ _cairo_xlib_core_compositor_fill (const cairo_compositor_t	*compositor,
 const cairo_compositor_t *
 _cairo_xlib_core_compositor_get (void)
 {
-    static cairo_atomic_once_t once = CAIRO_ATOMIC_ONCE_INIT;
     static cairo_compositor_t compositor;
 
-    if (_cairo_atomic_init_once_enter(&once)) {
+    if (compositor.delegate == NULL) {
 	compositor.delegate = _cairo_xlib_fallback_compositor_get ();
 
 	compositor.paint = _cairo_xlib_core_compositor_paint;
@@ -643,8 +642,6 @@ _cairo_xlib_core_compositor_get (void)
 	compositor.fill  = _cairo_xlib_core_compositor_fill;
 	compositor.stroke = _cairo_xlib_core_compositor_stroke;
 	compositor.glyphs = NULL; /* XXX PolyGlyph? */
-
-	_cairo_atomic_init_once_leave(&once);
     }
 
     return &compositor;

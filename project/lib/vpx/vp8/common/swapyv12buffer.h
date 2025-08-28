@@ -8,8 +8,9 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef VPX_VP8_COMMON_SWAPYV12BUFFER_H_
-#define VPX_VP8_COMMON_SWAPYV12BUFFER_H_
+
+#ifndef VP8_COMMON_SWAPYV12BUFFER_H_
+#define VP8_COMMON_SWAPYV12BUFFER_H_
 
 #include "vpx_scale/yv12config.h"
 
@@ -17,11 +18,10 @@
 extern "C" {
 #endif
 
-void vp8_swap_yv12_buffer(YV12_BUFFER_CONFIG *new_frame,
-                          YV12_BUFFER_CONFIG *last_frame);
+void vp8_swap_yv12_buffer(YV12_BUFFER_CONFIG *new_frame, YV12_BUFFER_CONFIG *last_frame);
 
 #ifdef __cplusplus
 }  // extern "C"
 #endif
 
-#endif  // VPX_VP8_COMMON_SWAPYV12BUFFER_H_
+#endif  // VP8_COMMON_SWAPYV12BUFFER_H_

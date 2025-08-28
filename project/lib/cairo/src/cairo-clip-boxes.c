@@ -52,6 +52,19 @@
 #include "cairo-composite-rectangles-private.h"
 #include "cairo-region-private.h"
 
+static inline int
+pot (int v)
+{
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;
+}
+
 static cairo_bool_t
 _cairo_clip_contains_rectangle_box (const cairo_clip_t *clip,
 				    const cairo_rectangle_int_t *rect,
@@ -106,7 +119,11 @@ _cairo_clip_contains_rectangle (const cairo_clip_t *clip,
 {
     cairo_box_t box;
 
-    _cairo_box_from_rectangle_int (&box, rect);
+    box.p1.x = _cairo_fixed_from_int (rect->x);
+    box.p1.y = _cairo_fixed_from_int (rect->y);
+    box.p2.x = _cairo_fixed_from_int (rect->x + rect->width);
+    box.p2.y = _cairo_fixed_from_int (rect->y + rect->height);
+
     return _cairo_clip_contains_rectangle_box (clip, rect, &box);
 }
 
@@ -251,34 +268,6 @@ _cairo_clip_intersect_box (cairo_clip_t *clip,
     return _cairo_clip_intersect_rectangle_box (clip, &r, box);
 }
 
-/* Copy a box set to a clip
- *
- * @param boxes  The box set to copy from.
- * @param clip   The clip to copy to (return buffer).
- * @returns      Zero if the allocation failed (the clip will be set to
- *               all-clipped), otherwise non-zero.
- */
-static cairo_bool_t
-_cairo_boxes_copy_to_clip (const cairo_boxes_t *boxes, cairo_clip_t *clip)
-{
-    /* XXX cow-boxes? */
-    if (boxes->num_boxes == 1) {
-	clip->boxes = &clip->embedded_box;
-	clip->boxes[0] = boxes->chunks.base[0];
-	clip->num_boxes = 1;
-	return TRUE;
-    }
-
-    clip->boxes = _cairo_boxes_to_array (boxes, &clip->num_boxes);
-    if (unlikely (clip->boxes == NULL))
-    {
-	_cairo_clip_set_all_clipped (clip);
-	return FALSE;
-    }
-
-    return TRUE;
-}
-
 cairo_clip_t *
 _cairo_clip_intersect_boxes (cairo_clip_t *clip,
 			     const cairo_boxes_t *boxes)
@@ -316,13 +305,13 @@ _cairo_clip_intersect_boxes (cairo_clip_t *clip,
     if (boxes->num_boxes == 0) {
 	clip = _cairo_clip_set_all_clipped (clip);
 	goto out;
+    } else if (boxes->num_boxes == 1) {
+	clip->boxes = &clip->embedded_box;
+	clip->boxes[0] = boxes->chunks.base[0];
+	clip->num_boxes = 1;
+    } else {
+	clip->boxes = _cairo_boxes_to_array (boxes, &clip->num_boxes, TRUE);
     }
-
-    if (!_cairo_boxes_copy_to_clip (boxes, clip)) {
-	clip = _cairo_clip_set_all_clipped (clip);
-	goto out;
-    }
-
     _cairo_boxes_extents (boxes, &limits);
 
     _cairo_box_round_to_rectangle (&limits, &extents);
@@ -358,7 +347,10 @@ _cairo_clip_intersect_rectangle (cairo_clip_t       *clip,
     if (r->width == 0 || r->height == 0)
 	return _cairo_clip_set_all_clipped (clip);
 
-    _cairo_box_from_rectangle_int (&box, r);
+    box.p1.x = _cairo_fixed_from_int (r->x);
+    box.p1.y = _cairo_fixed_from_int (r->y);
+    box.p2.x = _cairo_fixed_from_int (r->x + r->width);
+    box.p2.y = _cairo_fixed_from_int (r->y + r->height);
 
     return _cairo_clip_intersect_rectangle_box (clip, r, &box);
 }
@@ -589,8 +581,16 @@ _cairo_clip_from_boxes (const cairo_boxes_t *boxes)
     if (clip == NULL)
 	return _cairo_clip_set_all_clipped (clip);
 
-    if (unlikely (! _cairo_boxes_copy_to_clip (boxes, clip)))
-	return clip;
+    /* XXX cow-boxes? */
+    if(boxes->num_boxes == 1) {
+	clip->boxes = &clip->embedded_box;
+	clip->boxes[0] = boxes->chunks.base[0];
+	clip->num_boxes = 1;
+    } else {
+	clip->boxes = _cairo_boxes_to_array (boxes, &clip->num_boxes, TRUE);
+	if (clip->boxes == NULL)
+	    return _cairo_clip_set_all_clipped (clip);
+    }
 
     _cairo_boxes_extents (boxes, &extents);
     _cairo_box_round_to_rectangle (&extents, &clip->extents);

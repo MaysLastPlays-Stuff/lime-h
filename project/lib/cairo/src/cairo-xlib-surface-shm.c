@@ -43,10 +43,7 @@
 #include "cairo-xlib-surface-private.h"
 
 #if !HAVE_X11_EXTENSIONS_XSHM_H || !(HAVE_X11_EXTENSIONS_SHMPROTO_H || HAVE_X11_EXTENSIONS_SHMSTR_H)
-void _cairo_xlib_display_init_shm (cairo_xlib_display_t *display)
-{
-    display->shm = NULL;
-}
+void _cairo_xlib_display_init_shm (cairo_xlib_display_t *display) {}
 
 cairo_surface_t *
 _cairo_xlib_surface_get_shm (cairo_xlib_surface_t *surface,
@@ -576,7 +573,7 @@ _cairo_xlib_shm_pool_create(cairo_xlib_display_t *display,
     size_t bytes, maxbits = 16, minbits = MIN_BITS;
     Status success;
 
-    pool = _cairo_calloc (sizeof (cairo_xlib_shm_t));
+    pool = malloc (sizeof (cairo_xlib_shm_t));
     if (pool == NULL)
 	return NULL;
 
@@ -653,7 +650,7 @@ _cairo_xlib_shm_info_create (cairo_xlib_display_t *display,
 
     assert (mem != NULL);
 
-    info = _cairo_calloc (sizeof (*info));
+    info = malloc (sizeof (*info));
     if (info == NULL) {
 	_cairo_mempool_free (&pool->mem, mem);
 	return NULL;
@@ -812,15 +809,12 @@ _cairo_xlib_shm_surface_create (cairo_xlib_surface_t *other,
     pixman_image_t *image;
     int stride, size;
 
-    if (width > XLIB_COORD_MAX || height > XLIB_COORD_MAX)
-	return NULL;
-
     stride = CAIRO_STRIDE_FOR_WIDTH_BPP (width, PIXMAN_FORMAT_BPP(format));
     size = stride * height;
     if (size < MIN_SIZE)
 	return NULL;
 
-    shm = _cairo_calloc (sizeof (*shm));
+    shm = malloc (sizeof (*shm));
     if (unlikely (shm == NULL))
 	return (cairo_xlib_shm_surface_t *)_cairo_surface_create_in_error (CAIRO_STATUS_NO_MEMORY);
 
@@ -1393,7 +1387,7 @@ _cairo_xlib_display_init_shm (cairo_xlib_display_t *display)
     if (!can_use_shm (display->display, &has_pixmap))
 	return;
 
-    shm = _cairo_calloc (sizeof (*shm));
+    shm = malloc (sizeof (*shm));
     if (unlikely (shm == NULL))
 	return;
 

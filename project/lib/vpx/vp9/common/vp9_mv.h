@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef VPX_VP9_COMMON_VP9_MV_H_
-#define VPX_VP9_COMMON_VP9_MV_H_
+#ifndef VP9_COMMON_VP9_MV_H_
+#define VP9_COMMON_VP9_MV_H_
 
 #include "vpx/vpx_integer.h"
 
@@ -18,8 +18,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define INVALID_MV 0x80008000
 
 typedef struct mv {
   int16_t row;
@@ -41,11 +39,11 @@ static INLINE int is_zero_mv(const MV *mv) {
 }
 
 static INLINE int is_equal_mv(const MV *a, const MV *b) {
-  return *((const uint32_t *)a) == *((const uint32_t *)b);
+  return  *((const uint32_t *)a) == *((const uint32_t *)b);
 }
 
-static INLINE void clamp_mv(MV *mv, int min_col, int max_col, int min_row,
-                            int max_row) {
+static INLINE void clamp_mv(MV *mv, int min_col, int max_col,
+                            int min_row, int max_row) {
   mv->col = clamp(mv->col, min_col, max_col);
   mv->row = clamp(mv->row, min_row, max_row);
 }
@@ -54,4 +52,4 @@ static INLINE void clamp_mv(MV *mv, int min_col, int max_col, int min_row,
 }  // extern "C"
 #endif
 
-#endif  // VPX_VP9_COMMON_VP9_MV_H_
+#endif  // VP9_COMMON_VP9_MV_H_

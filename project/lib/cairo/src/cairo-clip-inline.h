@@ -68,14 +68,7 @@ _cairo_clip_copy_intersect_clip (const cairo_clip_t *clip,
 static inline void
 _cairo_clip_steal_boxes (cairo_clip_t *clip, cairo_boxes_t *boxes)
 {
-    cairo_box_t *array = clip->boxes;
-
-    if (array == &clip->embedded_box) {
-	assert (clip->num_boxes == 1);
-	boxes->boxes_embedded[0] = clip->embedded_box;
-	array = &boxes->boxes_embedded[0];
-    }
-    _cairo_boxes_init_for_array (boxes, array, clip->num_boxes);
+    _cairo_boxes_init_for_array (boxes, clip->boxes, clip->num_boxes);
     clip->boxes = NULL;
     clip->num_boxes = 0;
 }
@@ -83,13 +76,7 @@ _cairo_clip_steal_boxes (cairo_clip_t *clip, cairo_boxes_t *boxes)
 static inline void
 _cairo_clip_unsteal_boxes (cairo_clip_t *clip, cairo_boxes_t *boxes)
 {
-    if (boxes->chunks.base == &boxes->boxes_embedded[0]) {
-	assert(boxes->num_boxes == 1);
-	clip->embedded_box = *boxes->chunks.base;
-	clip->boxes = &clip->embedded_box;
-    } else {
-	clip->boxes = boxes->chunks.base;
-    }
+    clip->boxes = boxes->chunks.base;
     clip->num_boxes = boxes->num_boxes;
 }
 

@@ -8,12 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef VPX_VP9_ENCODER_VP9_SKIN_DETECTION_H_
-#define VPX_VP9_ENCODER_VP9_SKIN_DETECTION_H_
+#ifndef VP9_ENCODER_VP9_SKIN_MAP_H_
+#define VP9_ENCODER_VP9_SKIN_MAP_H_
 
 #include "vp9/common/vp9_blockd.h"
-#include "vpx_dsp/skin_detection.h"
-#include "vpx_util/vpx_write_yuv_frame.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,20 +19,17 @@ extern "C" {
 
 struct VP9_COMP;
 
-int vp9_compute_skin_block(const uint8_t *y, const uint8_t *u, const uint8_t *v,
-                           int stride, int strideuv, int bsize,
-                           int consec_zeromv, int curr_motion_magn);
+// #define OUTPUT_YUV_SKINMAP
 
-void vp9_compute_skin_sb(struct VP9_COMP *const cpi, BLOCK_SIZE bsize,
-                         int mi_row, int mi_col);
+int vp9_skin_pixel(const uint8_t y, const uint8_t cb, const uint8_t cr);
 
 #ifdef OUTPUT_YUV_SKINMAP
 // For viewing skin map on input source.
-void vp9_output_skin_map(struct VP9_COMP *const cpi, FILE *yuv_skinmap_file);
+void vp9_compute_skin_map(VP9_COMP *const cpi, FILE *yuv_skinmap_file);
 #endif
 
 #ifdef __cplusplus
 }  // extern "C"
 #endif
 
-#endif  // VPX_VP9_ENCODER_VP9_SKIN_DETECTION_H_
+#endif  // VP9_ENCODER_VP9_SKIN_MAP_H_

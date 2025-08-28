@@ -8,8 +8,9 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef VPX_VP8_COMMON_COMMON_H_
-#define VPX_VP8_COMMON_COMMON_H_
+
+#ifndef VP8_COMMON_COMMON_H_
+#define VP8_COMMON_COMMON_H_
 
 #include <assert.h>
 
@@ -21,28 +22,30 @@
 extern "C" {
 #endif
 
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+
 /* Only need this for fixed-size arrays, for structs just assign. */
 
-#define vp8_copy(Dest, Src)              \
-  {                                      \
-    assert(sizeof(Dest) == sizeof(Src)); \
-    memcpy(Dest, Src, sizeof(Src));      \
-  }
+#define vp8_copy( Dest, Src) { \
+        assert( sizeof( Dest) == sizeof( Src)); \
+        memcpy( Dest, Src, sizeof( Src)); \
+    }
 
 /* Use this for variably-sized arrays. */
 
-#define vp8_copy_array(Dest, Src, N)           \
-  {                                            \
-    assert(sizeof(*(Dest)) == sizeof(*(Src))); \
-    memcpy(Dest, Src, (N) * sizeof(*(Src)));   \
-  }
+#define vp8_copy_array( Dest, Src, N) { \
+        assert( sizeof( *Dest) == sizeof( *Src)); \
+        memcpy( Dest, Src, N * sizeof( *Src)); \
+    }
 
-#define vp8_zero(Dest) memset(&(Dest), 0, sizeof(Dest));
+#define vp8_zero( Dest)  memset( &Dest, 0, sizeof( Dest));
 
-#define vp8_zero_array(Dest, N) memset(Dest, 0, (N) * sizeof(*(Dest)));
+#define vp8_zero_array( Dest, N)  memset( Dest, 0, N * sizeof( *Dest));
+
 
 #ifdef __cplusplus
 }  // extern "C"
 #endif
 
-#endif  // VPX_VP8_COMMON_COMMON_H_
+#endif  // VP8_COMMON_COMMON_H_

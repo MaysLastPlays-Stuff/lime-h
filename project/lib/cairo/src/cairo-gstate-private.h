@@ -140,12 +140,6 @@ cairo_private double
 _cairo_gstate_get_line_width (cairo_gstate_t *gstate);
 
 cairo_private cairo_status_t
-_cairo_gstate_set_hairline (cairo_gstate_t *gstate, cairo_bool_t set_hairline);
-
-cairo_private cairo_bool_t
-_cairo_gstate_get_hairline (cairo_gstate_t *gstate);
-
-cairo_private cairo_status_t
 _cairo_gstate_set_line_cap (cairo_gstate_t *gstate, cairo_line_cap_t line_cap);
 
 cairo_private cairo_line_cap_t
@@ -328,15 +322,6 @@ _cairo_gstate_show_surface (cairo_gstate_t	*gstate,
 			    double		 y,
 			    double		width,
 			    double		height);
-
-cairo_private cairo_status_t
-_cairo_gstate_tag_begin (cairo_gstate_t	*gstate,
-			 const char     *tag_name,
-			 const char     *attributes);
-
-cairo_private cairo_status_t
-_cairo_gstate_tag_end (cairo_gstate_t	*gstate,
-		       const char       *tag_name);
 
 cairo_private cairo_status_t
 _cairo_gstate_set_font_size (cairo_gstate_t *gstate,

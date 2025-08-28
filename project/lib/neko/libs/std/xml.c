@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2012 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -44,7 +44,7 @@ typedef enum {
 	EQUALS,
 	ATTVAL_BEGIN,
 	ATTRIB_VAL,
-	CHILDREN,
+	CHILDS,
 	CLOSE,
 	WAIT_END,
 	WAIT_END_RET,
@@ -208,7 +208,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 				val_ocall2(callb,id_xml,nodename,attribs);
 				break;
 			case '>':
-				state = CHILDREN;
+				state = CHILDS;
 				nsubs++;
 				val_ocall2(callb,id_xml,nodename,attribs);
 				break;
@@ -261,7 +261,7 @@ static void do_parse_xml( const char *xml, const char **lp, int *line, value cal
 				next = BODY;
 			}
 			break;
-		case CHILDREN:
+		case CHILDS:
 			*lp = p;
 			do_parse_xml(xml,lp,line,callb,val_string(nodename));
 			p = *lp;

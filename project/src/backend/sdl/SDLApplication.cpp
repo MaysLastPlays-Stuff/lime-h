@@ -53,7 +53,6 @@ namespace lime {
 		JoystickEvent joystickEvent;
 		KeyEvent keyEvent;
 		MouseEvent mouseEvent;
-		OrientationEvent orientationEvent;
 		RenderEvent renderEvent;
 		SensorEvent sensorEvent;
 		TextEvent textEvent;
@@ -61,9 +60,6 @@ namespace lime {
 		WindowEvent windowEvent;
 
 		SDL_EventState (SDL_DROPFILE, SDL_ENABLE);
-		SDL_EventState (SDL_DROPTEXT, SDL_ENABLE);
-		SDL_EventState (SDL_DROPBEGIN, SDL_ENABLE);
-		SDL_EventState (SDL_DROPCOMPLETE, SDL_ENABLE);
 		SDLJoystick::Init ();
 
 		#ifdef HX_MACOS
@@ -187,29 +183,7 @@ namespace lime {
 				ProcessGamepadEvent (event);
 				break;
 
-			case SDL_DISPLAYEVENT:
-
-				switch (event->display.event) {
-
-					case SDL_DISPLAYEVENT_ORIENTATION:
-
-						// this is the orientation of what is rendered, which
-						// may not exactly match the orientation of the device,
-						// if the app was locked to portrait or landscape.
-						orientationEvent.type = DISPLAY_ORIENTATION_CHANGE;
-						orientationEvent.orientation = event->display.data1;
-						orientationEvent.display = event->display.display;
-						OrientationEvent::Dispatch (&orientationEvent);
-
-						break;
-
-				}
-				break;
-
 			case SDL_DROPFILE:
-			case SDL_DROPTEXT:
-			case SDL_DROPBEGIN:
-			case SDL_DROPCOMPLETE:
 
 				ProcessDropEvent (event);
 				break;
@@ -378,27 +352,8 @@ namespace lime {
 
 		if (DropEvent::callback) {
 
-			switch (event->type)
-			{
-				case SDL_DROPFILE:
-					dropEvent.type = DROP_FILE;
-					dropEvent.file = (vbyte*)event->drop.file;
-					break;
-				case SDL_DROPTEXT:
-					dropEvent.type = DROP_TEXT;
-					dropEvent.file = (vbyte*)event->drop.file;
-					break;
-				case SDL_DROPBEGIN:
-					dropEvent.type = DROP_BEGIN;
-					dropEvent.file = 0;
-					break;
-				case SDL_DROPCOMPLETE:
-					dropEvent.type = DROP_COMPLETE;
-					dropEvent.file = 0;
-					break;
-				default:
-					break;
-			}
+			dropEvent.type = DROP_FILE;
+			dropEvent.file = (vbyte*)event->drop.file;
 
 			DropEvent::Dispatch (&dropEvent);
 			SDL_free (dropEvent.file);
@@ -519,6 +474,20 @@ namespace lime {
 					}
 					break;
 
+				case SDL_JOYBALLMOTION:
+
+					if (!SDLJoystick::IsAccelerometer (event->jball.which)) {
+
+						joystickEvent.type = JOYSTICK_TRACKBALL_MOVE;
+						joystickEvent.index = event->jball.ball;
+						joystickEvent.x = event->jball.xrel / (event->jball.xrel > 0 ? 32767.0 : 32768.0);
+						joystickEvent.y = event->jball.yrel / (event->jball.yrel > 0 ? 32767.0 : 32768.0);
+						joystickEvent.id = event->jball.which;
+
+						JoystickEvent::Dispatch (&joystickEvent);
+
+					}
+					break;
 
 				case SDL_JOYBUTTONDOWN:
 

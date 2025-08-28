@@ -7,25 +7,26 @@
 // be found in the AUTHORS file in the root of the source tree.
 
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <memory>
 #include <string>
-#include <utility>
+#include "./mkvparser.hpp"
+#include "./mkvreader.hpp"
+#include "./webvttparser.h"
 
-#include "mkvparser/mkvparser.h"
-#include "mkvparser/mkvreader.h"
-#include "webvtt/webvttparser.h"
+#ifdef _MSC_VER
+// Disable MSVC warnings that suggest making code non-portable.
+#pragma warning(disable : 4996)
+#endif
 
 using std::string;
 
-namespace libwebm {
 namespace vttdemux {
 
 typedef long long mkvtime_t;  // NOLINT
 typedef long long mkvpos_t;  // NOLINT
-typedef std::unique_ptr<mkvparser::Segment> segment_ptr_t;
+typedef std::auto_ptr<mkvparser::Segment> segment_ptr_t;
 
 // WebVTT metadata tracks have a type (encoded in the CodecID for the track).
 // We use |type| to synthesize a filename for the out-of-band WebVTT |file|.
@@ -217,6 +218,56 @@ bool WriteCueTime(FILE* f, mkvtime_t time_ns);
 bool WriteCuePayload(FILE* f, FrameParser* parser);
 }  // namespace vttdemux
 
+int main(int argc, const char* argv[]) {
+  if (argc != 2) {
+    printf("usage: vttdemux <webmfile>\n");
+    return EXIT_SUCCESS;
+  }
+
+  const char* const filename = argv[1];
+  mkvparser::MkvReader reader;
+
+  int e = reader.Open(filename);
+
+  if (e) {  // error
+    printf("unable to open file\n");
+    return EXIT_FAILURE;
+  }
+
+  vttdemux::mkvpos_t pos;
+
+  if (!vttdemux::ParseHeader(&reader, &pos))
+    return EXIT_FAILURE;
+
+  vttdemux::segment_ptr_t segment_ptr;
+
+  if (!vttdemux::ParseSegment(&reader, pos, &segment_ptr))
+    return EXIT_FAILURE;
+
+  vttdemux::metadata_map_t metadata_map;
+
+  BuildMap(segment_ptr.get(), &metadata_map);
+
+  if (metadata_map.empty()) {
+    printf("no WebVTT metadata found\n");
+    return EXIT_FAILURE;
+  }
+
+  if (!OpenFiles(&metadata_map, filename)) {
+    CloseFiles(&metadata_map);  // nothing to flush, so not strictly necessary
+    return EXIT_FAILURE;
+  }
+
+  if (!WriteFiles(metadata_map, segment_ptr.get())) {
+    CloseFiles(&metadata_map);  // might as well flush what we do have
+    return EXIT_FAILURE;
+  }
+
+  CloseFiles(&metadata_map);
+
+  return EXIT_SUCCESS;
+}
+
 namespace vttdemux {
 
 FrameParser::FrameParser(const mkvparser::BlockGroup* block_group)
@@ -262,8 +313,6 @@ ChapterAtomParser::ChapterAtomParser(
     const mkvparser::Chapters::Display* display)
     : display_(display) {
   str_ = display->GetString();
-  if (str_ == NULL)
-    return;
   const size_t len = strlen(str_);
   str_end_ = str_ + len;
 }
@@ -271,7 +320,7 @@ ChapterAtomParser::ChapterAtomParser(
 ChapterAtomParser::~ChapterAtomParser() {}
 
 int ChapterAtomParser::GetChar(char* c) {
-  if (str_ == NULL || str_ >= str_end_)  // end-of-stream
+  if (str_ >= str_end_)  // end-of-stream
     return 1;  // per the semantics of libwebvtt::Reader::GetChar
 
   *c = *str_++;  // consume this character in the stream
@@ -296,7 +345,7 @@ bool vttdemux::ParseHeader(mkvparser::IMkvReader* reader, mkvpos_t* pos) {
     return false;
   }
 
-  if (h.m_docType == NULL || strcmp(h.m_docType, "webm") != 0) {
+  if (strcmp(h.m_docType, "webm") != 0) {
     printf("bad doctype\n");
     return false;
   }
@@ -523,10 +572,8 @@ void vttdemux::CloseFiles(metadata_map_t* metadata_map) {
     metadata_map_t::value_type& v = *i++;
     MetadataInfo& info = v.second;
 
-    if (info.file != NULL) {
-      fclose(info.file);
-      info.file = NULL;
-    }
+    fclose(info.file);
+    info.file = NULL;
   }
 }
 
@@ -949,56 +996,4 @@ bool vttdemux::WriteCuePayload(FILE* f, FrameParser* parser) {
     return false;
 
   return true;
-}
-
-}  // namespace libwebm
-
-int main(int argc, const char* argv[]) {
-  if (argc != 2) {
-    printf("usage: vttdemux <webmfile>\n");
-    return EXIT_SUCCESS;
-  }
-
-  const char* const filename = argv[1];
-  mkvparser::MkvReader reader;
-
-  int e = reader.Open(filename);
-
-  if (e) {  // error
-    printf("unable to open file\n");
-    return EXIT_FAILURE;
-  }
-
-  libwebm::vttdemux::mkvpos_t pos;
-
-  if (!libwebm::vttdemux::ParseHeader(&reader, &pos))
-    return EXIT_FAILURE;
-
-  libwebm::vttdemux::segment_ptr_t segment_ptr;
-
-  if (!libwebm::vttdemux::ParseSegment(&reader, pos, &segment_ptr))
-    return EXIT_FAILURE;
-
-  libwebm::vttdemux::metadata_map_t metadata_map;
-
-  BuildMap(segment_ptr.get(), &metadata_map);
-
-  if (metadata_map.empty()) {
-    printf("no WebVTT metadata found\n");
-    return EXIT_FAILURE;
-  }
-
-  if (!OpenFiles(&metadata_map, filename)) {
-    CloseFiles(&metadata_map);  // nothing to flush, so not strictly necessary
-    return EXIT_FAILURE;
-  }
-
-  if (!WriteFiles(metadata_map, segment_ptr.get())) {
-    CloseFiles(&metadata_map);  // might as well flush what we do have
-    return EXIT_FAILURE;
-  }
-
-  CloseFiles(&metadata_map);
-
-  return EXIT_SUCCESS;
 }

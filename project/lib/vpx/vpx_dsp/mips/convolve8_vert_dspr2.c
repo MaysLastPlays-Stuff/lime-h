@@ -18,9 +18,12 @@
 #include "vpx_ports/mem.h"
 
 #if HAVE_DSPR2
-static void convolve_vert_4_dspr2(const uint8_t *src, int32_t src_stride,
-                                  uint8_t *dst, int32_t dst_stride,
-                                  const int16_t *filter_y, int32_t w,
+static void convolve_vert_4_dspr2(const uint8_t *src,
+                                  int32_t src_stride,
+                                  uint8_t *dst,
+                                  int32_t dst_stride,
+                                  const int16_t *filter_y,
+                                  int32_t w,
                                   int32_t h) {
   int32_t x, y;
   const uint8_t *src_ptr;
@@ -50,7 +53,7 @@ static void convolve_vert_4_dspr2(const uint8_t *src, int32_t src_stride,
       src_ptr = src + x;
       dst_ptr = dst + x;
 
-      __asm__ __volatile__(
+      __asm__ __volatile__ (
           "ulw              %[load1],     0(%[src_ptr])                   \n\t"
           "add              %[src_ptr],   %[src_ptr],     %[src_stride]   \n\t"
           "ulw              %[load2],     0(%[src_ptr])                   \n\t"
@@ -149,16 +152,19 @@ static void convolve_vert_4_dspr2(const uint8_t *src, int32_t src_stride,
           "sb               %[store1],    2(%[dst_ptr])                   \n\t"
           "sb               %[store2],    3(%[dst_ptr])                   \n\t"
 
-          : [load1] "=&r"(load1), [load2] "=&r"(load2), [load3] "=&r"(load3),
-            [load4] "=&r"(load4), [p1] "=&r"(p1), [p2] "=&r"(p2),
-            [n1] "=&r"(n1), [n2] "=&r"(n2), [scratch1] "=&r"(scratch1),
-            [scratch2] "=&r"(scratch2), [Temp1] "=&r"(Temp1),
-            [Temp2] "=&r"(Temp2), [store1] "=&r"(store1),
-            [store2] "=&r"(store2), [src_ptr] "+r"(src_ptr)
-          : [vector1b] "r"(vector1b), [vector2b] "r"(vector2b),
-            [vector3b] "r"(vector3b), [vector4b] "r"(vector4b),
-            [vector4a] "r"(vector4a), [src_stride] "r"(src_stride),
-            [cm] "r"(cm), [dst_ptr] "r"(dst_ptr));
+          : [load1] "=&r" (load1), [load2] "=&r" (load2),
+            [load3] "=&r" (load3), [load4] "=&r" (load4),
+            [p1] "=&r" (p1), [p2] "=&r" (p2),
+            [n1] "=&r" (n1), [n2] "=&r" (n2),
+            [scratch1] "=&r" (scratch1), [scratch2] "=&r" (scratch2),
+            [Temp1] "=&r" (Temp1), [Temp2] "=&r" (Temp2),
+            [store1] "=&r" (store1), [store2] "=&r" (store2),
+            [src_ptr] "+r" (src_ptr)
+          : [vector1b] "r" (vector1b), [vector2b] "r" (vector2b),
+            [vector3b] "r" (vector3b), [vector4b] "r" (vector4b),
+            [vector4a] "r" (vector4a), [src_stride] "r" (src_stride),
+            [cm] "r" (cm), [dst_ptr] "r" (dst_ptr)
+      );
     }
 
     /* Next row... */
@@ -167,9 +173,12 @@ static void convolve_vert_4_dspr2(const uint8_t *src, int32_t src_stride,
   }
 }
 
-static void convolve_vert_64_dspr2(const uint8_t *src, int32_t src_stride,
-                                   uint8_t *dst, int32_t dst_stride,
-                                   const int16_t *filter_y, int32_t h) {
+static void convolve_vert_64_dspr2(const uint8_t *src,
+                                   int32_t src_stride,
+                                   uint8_t *dst,
+                                   int32_t dst_stride,
+                                   const int16_t *filter_y,
+                                   int32_t h) {
   int32_t x, y;
   const uint8_t *src_ptr;
   uint8_t *dst_ptr;
@@ -199,7 +208,7 @@ static void convolve_vert_64_dspr2(const uint8_t *src, int32_t src_stride,
       src_ptr = src + x;
       dst_ptr = dst + x;
 
-      __asm__ __volatile__(
+      __asm__ __volatile__ (
           "ulw              %[load1],     0(%[src_ptr])                   \n\t"
           "add              %[src_ptr],   %[src_ptr],     %[src_stride]   \n\t"
           "ulw              %[load2],     0(%[src_ptr])                   \n\t"
@@ -298,16 +307,19 @@ static void convolve_vert_64_dspr2(const uint8_t *src, int32_t src_stride,
           "sb               %[store1],    2(%[dst_ptr])                   \n\t"
           "sb               %[store2],    3(%[dst_ptr])                   \n\t"
 
-          : [load1] "=&r"(load1), [load2] "=&r"(load2), [load3] "=&r"(load3),
-            [load4] "=&r"(load4), [p1] "=&r"(p1), [p2] "=&r"(p2),
-            [n1] "=&r"(n1), [n2] "=&r"(n2), [scratch1] "=&r"(scratch1),
-            [scratch2] "=&r"(scratch2), [Temp1] "=&r"(Temp1),
-            [Temp2] "=&r"(Temp2), [store1] "=&r"(store1),
-            [store2] "=&r"(store2), [src_ptr] "+r"(src_ptr)
-          : [vector1b] "r"(vector1b), [vector2b] "r"(vector2b),
-            [vector3b] "r"(vector3b), [vector4b] "r"(vector4b),
-            [vector4a] "r"(vector4a), [src_stride] "r"(src_stride),
-            [cm] "r"(cm), [dst_ptr] "r"(dst_ptr));
+          : [load1] "=&r" (load1), [load2] "=&r" (load2),
+            [load3] "=&r" (load3), [load4] "=&r" (load4),
+            [p1] "=&r" (p1), [p2] "=&r" (p2),
+            [n1] "=&r" (n1), [n2] "=&r" (n2),
+            [scratch1] "=&r" (scratch1), [scratch2] "=&r" (scratch2),
+            [Temp1] "=&r" (Temp1), [Temp2] "=&r" (Temp2),
+            [store1] "=&r" (store1), [store2] "=&r" (store2),
+            [src_ptr] "+r" (src_ptr)
+          : [vector1b] "r" (vector1b), [vector2b] "r" (vector2b),
+            [vector3b] "r" (vector3b), [vector4b] "r" (vector4b),
+            [vector4a] "r" (vector4a), [src_stride] "r" (src_stride),
+            [cm] "r" (cm), [dst_ptr] "r" (dst_ptr)
+      );
     }
 
     /* Next row... */
@@ -318,40 +330,51 @@ static void convolve_vert_64_dspr2(const uint8_t *src, int32_t src_stride,
 
 void vpx_convolve8_vert_dspr2(const uint8_t *src, ptrdiff_t src_stride,
                               uint8_t *dst, ptrdiff_t dst_stride,
-                              const InterpKernel *filter, int x0_q4,
-                              int x_step_q4, int y0_q4, int y_step_q4, int w,
-                              int h) {
-  const int16_t *const filter_y = filter[y0_q4];
+                              const int16_t *filter_x, int x_step_q4,
+                              const int16_t *filter_y, int y_step_q4,
+                              int w, int h) {
   assert(y_step_q4 == 16);
   assert(((const int32_t *)filter_y)[1] != 0x800000);
 
-  if (vpx_get_filter_taps(filter_y) == 2) {
-    vpx_convolve2_vert_dspr2(src, src_stride, dst, dst_stride, filter, x0_q4,
-                             x_step_q4, y0_q4, y_step_q4, w, h);
+  if (((const int32_t *)filter_y)[0] == 0) {
+    vpx_convolve2_vert_dspr2(src, src_stride,
+                             dst, dst_stride,
+                             filter_x, x_step_q4,
+                             filter_y, y_step_q4,
+                             w, h);
   } else {
     uint32_t pos = 38;
 
     /* bit positon for extract from acc */
-    __asm__ __volatile__("wrdsp      %[pos],     1           \n\t"
-                         :
-                         : [pos] "r"(pos));
+    __asm__ __volatile__ (
+      "wrdsp      %[pos],     1           \n\t"
+      :
+      : [pos] "r" (pos)
+    );
 
     prefetch_store(dst);
 
     switch (w) {
-      case 4:
-      case 8:
-      case 16:
-      case 32:
-        convolve_vert_4_dspr2(src, src_stride, dst, dst_stride, filter_y, w, h);
+      case 4 :
+      case 8 :
+      case 16 :
+      case 32 :
+        convolve_vert_4_dspr2(src, src_stride,
+                              dst, dst_stride,
+                              filter_y, w, h);
         break;
-      case 64:
+      case 64 :
         prefetch_store(dst + 32);
-        convolve_vert_64_dspr2(src, src_stride, dst, dst_stride, filter_y, h);
+        convolve_vert_64_dspr2(src, src_stride,
+                               dst, dst_stride,
+                               filter_y, h);
         break;
       default:
-        vpx_convolve8_vert_c(src, src_stride, dst, dst_stride, filter, x0_q4,
-                             x_step_q4, y0_q4, y_step_q4, w, h);
+        vpx_convolve8_vert_c(src, src_stride,
+                             dst, dst_stride,
+                             filter_x, x_step_q4,
+                             filter_y, y_step_q4,
+                             w, h);
         break;
     }
   }

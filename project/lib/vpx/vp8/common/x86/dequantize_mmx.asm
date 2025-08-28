@@ -11,10 +11,9 @@
 
 %include "vpx_ports/x86_abi_support.asm"
 
-SECTION .text
 
 ;void vp8_dequantize_b_impl_mmx(short *sq, short *dq, short *q)
-globalsym(vp8_dequantize_b_impl_mmx)
+global sym(vp8_dequantize_b_impl_mmx) PRIVATE
 sym(vp8_dequantize_b_impl_mmx):
     push        rbp
     mov         rbp, rsp
@@ -56,7 +55,7 @@ sym(vp8_dequantize_b_impl_mmx):
 ;short *dq,               1
 ;unsigned char *dest,     2
 ;int stride)              3
-globalsym(vp8_dequant_idct_add_mmx)
+global sym(vp8_dequant_idct_add_mmx) PRIVATE
 sym(vp8_dequant_idct_add_mmx):
     push        rbp
     mov         rbp, rsp

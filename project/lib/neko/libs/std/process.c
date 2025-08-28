@@ -1,5 +1,5 @@
 /*
- * Copyright (C)2005-2017 Haxe Foundation
+ * Copyright (C)2005-2012 Haxe Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,12 +27,8 @@
 #	include <sys/types.h>
 #	include <unistd.h>
 #	include <errno.h>
-#	if !defined(NEKO_MAC)
-#		if defined(NEKO_BSD)
-#			include <sys/wait.h>
-#		else
-#			include <wait.h>
-#		endif
+#	ifndef NEKO_MAC
+#		include <wait.h>
 #	endif
 #endif
 
@@ -95,20 +91,13 @@ static void free_process( value vp ) {
 	process_run : cmd:string -> args:string array -> 'process
 	<doc>
 	Start a process using a command and the specified arguments.
-	When args is not null, cmd and args will be auto-quoted/escaped.
-	If no auto-quoting/escaping is desired, you should append necessary 
-	arguments to cmd as if it is inputted to the shell directly, and pass
-	null as args.
 	</doc>
 **/
 static value process_run( value cmd, value vargs ) {
-	int i, isRaw;
+	int i;
 	vprocess *p;
 	val_check(cmd,string);
-	isRaw = val_is_null(vargs);
-	if (!isRaw) {
-		val_check(vargs,array);
-	}
+	val_check(vargs,array);
 #	ifdef NEKO_WINDOWS
 	{		 
 		SECURITY_ATTRIBUTES sattr;		
@@ -118,57 +107,15 @@ static value process_run( value cmd, value vargs ) {
 		// creates commandline
 		buffer b = alloc_buffer(NULL);
 		value sargs;
-		if (isRaw) {
-			char* cmdexe = getenv("COMSPEC");
-			if (!cmdexe) cmdexe = "cmd.exe";
-			buffer_append(b,"\"");
-			buffer_append(b,cmdexe);
-			buffer_append(b,"\" /C \"");
-			buffer_append(b,val_string(cmd));
+		buffer_append_char(b,'"');
+		val_buffer(b,cmd);
+		buffer_append_char(b,'"');
+		for(i=0;i<val_array_size(vargs);i++) {
+			value v = val_array_ptr(vargs)[i];
+			val_check(v,string);
+			buffer_append(b," \"");
+			val_buffer(b,v);
 			buffer_append_char(b,'"');
-		} else {
-			buffer_append_char(b,'"');
-			val_buffer(b,cmd);
-			buffer_append_char(b,'"');
-			for(i=0;i<val_array_size(vargs);i++) {
-				value v = val_array_ptr(vargs)[i];
-				int j,len;
-				unsigned int bs_count = 0;
-				unsigned int k;
-				val_check(v,string);
-				len = val_strlen(v);
-				buffer_append(b," \"");
-				for(j=0;j<len;j++) {
-					char c = val_string(v)[j];
-					switch( c ) {
-					case '"':
-						// Double backslashes.
-						for (k=0;k<bs_count*2;k++) {
-							buffer_append_char(b,'\\');
-						}
-						bs_count = 0;
-						buffer_append(b, "\\\"");
-						break;
-					case '\\':
-						// Don't know if we need to double yet.
-						bs_count++;
-						break;
-					default:
-						// Normal char
-						for (k=0;k<bs_count;k++) {
-							buffer_append_char(b,'\\');
-						}
-						bs_count = 0;
-						buffer_append_char(b,c);
-						break;
-					}
-				}
-				// Add remaining backslashes, if any.
-				for (k=0;k<bs_count*2;k++) {
-					buffer_append_char(b,'\\');
-				}
-				buffer_append_char(b,'"');
-			}
 		}
 		sargs = buffer_to_string(b);
 		p = (vprocess*)alloc_private(sizeof(vprocess));
@@ -197,23 +144,14 @@ static value process_run( value cmd, value vargs ) {
 		CloseHandle(sinf.hStdInput);
 	}
 #	else
-	char **argv;
-	if (isRaw) {
-		argv = (char**)alloc_private(sizeof(char*)*4);
-		argv[0] = "/bin/sh";
-		argv[1] = "-c";
-		argv[2] = val_string(cmd);
-		argv[3] = NULL;
-	} else {
-		argv = (char**)alloc_private(sizeof(char*)*(val_array_size(vargs)+2));
-		argv[0] = val_string(cmd);
-		for(i=0;i<val_array_size(vargs);i++) {
-			value v = val_array_ptr(vargs)[i];
-			val_check(v,string);
-			argv[i+1] = val_string(v);
-		}
-		argv[i+1] = NULL;
+	char **argv = (char**)alloc_private(sizeof(char*)*(val_array_size(vargs)+2));
+	argv[0] = val_string(cmd);
+	for(i=0;i<val_array_size(vargs);i++) {
+		value v = val_array_ptr(vargs)[i];
+		val_check(v,string);
+		argv[i+1] = val_string(v);
 	}
+	argv[i+1] = NULL;
 	int input[2], output[2], error[2];
 	if( pipe(input) || pipe(output) || pipe(error) )
 		neko_error();
@@ -236,7 +174,7 @@ static value process_run( value cmd, value vargs ) {
 		dup2(input[0],0);
 		dup2(output[1],1);
 		dup2(error[1],2);
-		execvp(argv[0],argv);
+		execvp(val_string(cmd),argv);
 		fprintf(stderr,"Command not found : %s\n",val_string(cmd));
 		exit(1);
 	}
@@ -403,15 +341,8 @@ static value process_exit( value vp ) {
 			continue;
 		neko_error();
 	}
-	if( !WIFEXITED(rval) ) {
-		if (WIFSIGNALED(rval)) {
-			char msg[30];
-			sprintf(msg, "process killed by signal %d", WTERMSIG(rval));
-			val_throw(alloc_string(msg));
-		} else {
-			neko_error();
-		}
-	}
+	if( !WIFEXITED(rval) )
+		neko_error();
 	return alloc_int(WEXITSTATUS(rval));
 #	endif
 }

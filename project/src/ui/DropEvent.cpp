@@ -44,16 +44,14 @@ namespace lime {
 
 				DropEvent* eventObject = (DropEvent*)DropEvent::eventObject->Get ();
 
-				if (event->type == DROP_FILE || event->type == DROP_TEXT) {
-					int length = strlen ((const char*)event->file);
-					char* file = (char*)malloc (length + 1);
-					strcpy (file, (const char*)event->file);
-					eventObject->file = (vbyte*)file;
-				} else {
-					eventObject->file = 0;
-				}
+				int length = strlen ((const char*)event->file);
+				char* file = (char*)malloc (length + 1);
+				strcpy (file, (const char*)event->file);
+				eventObject->file = (vbyte*)file;
 				eventObject->type = event->type;
+
 			}
+
 			DropEvent::callback->Call ();
 
 		}

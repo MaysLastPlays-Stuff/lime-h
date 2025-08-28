@@ -37,6 +37,15 @@
  *	Vladimir Vukicevic <vladimir@pobox.com>
  */
 
+#define WIN32_LEAN_AND_MEAN
+/* We require Windows 2000 features such as ETO_PDY */
+#if !defined(WINVER) || (WINVER < 0x0500)
+# define WINVER 0x0500
+#endif
+#if !defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0500)
+# define _WIN32_WINNT 0x0500
+#endif
+
 #include "cairoint.h"
 
 #include "cairo-atomic-private.h"
@@ -122,12 +131,10 @@ _cairo_win32_device_get (void)
 {
     cairo_win32_device_t *device;
 
-    CAIRO_MUTEX_INITIALIZE ();
-
     if (__cairo_win32_device)
 	return cairo_device_reference (__cairo_win32_device);
 
-    device = _cairo_calloc (sizeof (*device));
+    device = malloc (sizeof (*device));
 
     _cairo_device_init (&device->base, &_cairo_win32_device_backend);
 
@@ -136,7 +143,7 @@ _cairo_win32_device_get (void)
     device->msimg32_dll = NULL;
     device->alpha_blend = _cairo_win32_device_get_alpha_blend (device);
 
-    if (_cairo_atomic_ptr_cmpxchg ((cairo_atomic_intptr_t *)&__cairo_win32_device, NULL, device))
+    if (_cairo_atomic_ptr_cmpxchg ((void **)&__cairo_win32_device, NULL, device))
 	return cairo_device_reference(&device->base);
 
     _cairo_win32_device_destroy (device);
@@ -144,35 +151,20 @@ _cairo_win32_device_get (void)
 }
 
 unsigned
-_cairo_win32_flags_for_dc (HDC dc, cairo_format_t format)
+_cairo_win32_flags_for_dc (HDC dc)
 {
     uint32_t flags = 0;
-    cairo_bool_t is_display = GetDeviceCaps(dc, TECHNOLOGY) == DT_RASDISPLAY;
+    int cap;
 
-    if (format == CAIRO_FORMAT_RGB24 || format == CAIRO_FORMAT_ARGB32)
-    {
-	int cap = GetDeviceCaps(dc, RASTERCAPS);
-	if (cap & RC_BITBLT)
-	    flags |= CAIRO_WIN32_SURFACE_CAN_BITBLT;
-	if (!is_display && GetDeviceCaps(dc, SHADEBLENDCAPS) != SB_NONE)
-	    flags |= CAIRO_WIN32_SURFACE_CAN_ALPHABLEND;
+    cap = GetDeviceCaps(dc, RASTERCAPS);
+    if (cap & RC_BITBLT)
+	flags |= CAIRO_WIN32_SURFACE_CAN_BITBLT;
+    if (cap & RC_STRETCHBLT)
+	flags |= CAIRO_WIN32_SURFACE_CAN_STRETCHBLT;
+    if (cap & RC_STRETCHDIB)
+	flags |= CAIRO_WIN32_SURFACE_CAN_STRETCHDIB;
 
-	/* ARGB32 available operations are a strict subset of RGB24
-	 * available operations. This is because the same GDI functions
-	 * can be used but most of them always reset alpha channel to 0
-	 * which is bad for ARGB32.
-	 */
-	if (format == CAIRO_FORMAT_RGB24)
-	{
-	    flags |= CAIRO_WIN32_SURFACE_CAN_RGB_BRUSH;
-	    if (cap & RC_STRETCHBLT)
-		flags |= CAIRO_WIN32_SURFACE_CAN_STRETCHBLT;
-	    if (cap & RC_STRETCHDIB)
-		flags |= CAIRO_WIN32_SURFACE_CAN_STRETCHDIB;
-	}
-    }
-
-    if (is_display) {
+    if (GetDeviceCaps(dc, TECHNOLOGY) == DT_RASDISPLAY) {
 	flags |= CAIRO_WIN32_SURFACE_IS_DISPLAY;
 
 	/* These will always be possible, but the actual GetDeviceCaps
@@ -187,6 +179,10 @@ _cairo_win32_flags_for_dc (HDC dc, cairo_format_t format)
 	flags |= CAIRO_WIN32_SURFACE_CAN_STRETCHBLT;
 	flags |= CAIRO_WIN32_SURFACE_CAN_STRETCHDIB;
 #endif
+    } else {
+	cap = GetDeviceCaps(dc, SHADEBLENDCAPS);
+	if (cap != SB_NONE)
+	    flags |= CAIRO_WIN32_SURFACE_CAN_ALPHABLEND;
     }
 
     return flags;

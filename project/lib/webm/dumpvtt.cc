@@ -8,8 +8,8 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include "webvtt/vttreader.h"
-#include "webvtt/webvttparser.h"
+#include "./vttreader.h"
+#include "./webvttparser.h"
 
 int main(int argc, const char* argv[]) {
   if (argc != 2) {

@@ -159,12 +159,6 @@ _cairo_device_create_in_error (cairo_status_t status)
     case CAIRO_STATUS_INVALID_MESH_CONSTRUCTION:
     case CAIRO_STATUS_DEVICE_FINISHED:
     case CAIRO_STATUS_JBIG2_GLOBAL_MISSING:
-    case CAIRO_STATUS_PNG_ERROR:
-    case CAIRO_STATUS_FREETYPE_ERROR:
-    case CAIRO_STATUS_WIN32_GDI_ERROR:
-    case CAIRO_STATUS_TAG_ERROR:
-    case CAIRO_STATUS_DWRITE_ERROR:
-    case CAIRO_STATUS_SVG_FONT_ERROR:
     default:
 	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
 	return (cairo_device_t *) &_nil_device;
@@ -196,8 +190,8 @@ _cairo_device_init (cairo_device_t *device,
  * @device from being destroyed until a matching call to
  * cairo_device_destroy() is made.
  *
- * Use cairo_device_get_reference_count() to get the number of references
- * to a #cairo_device_t.
+ * The number of references to a #cairo_device_t can be get using
+ * cairo_device_get_reference_count().
  *
  * Return value: the referenced #cairo_device_t.
  *
@@ -217,6 +211,7 @@ cairo_device_reference (cairo_device_t *device)
 
     return device;
 }
+slim_hidden_def (cairo_device_reference);
 
 /**
  * cairo_device_status:
@@ -271,6 +266,7 @@ cairo_device_flush (cairo_device_t *device)
 	    status = _cairo_device_set_error (device, status);
     }
 }
+slim_hidden_def (cairo_device_flush);
 
 /**
  * cairo_device_finish:
@@ -314,6 +310,7 @@ cairo_device_finish (cairo_device_t *device)
      */
     device->finished = TRUE;
 }
+slim_hidden_def (cairo_device_finish);
 
 /**
  * cairo_device_destroy:
@@ -354,6 +351,7 @@ cairo_device_destroy (cairo_device_t *device)
     _cairo_user_data_array_fini (&user_data);
 
 }
+slim_hidden_def (cairo_device_destroy);
 
 /**
  * cairo_device_get_type:
@@ -428,6 +426,7 @@ cairo_device_acquire (cairo_device_t *device)
 
     return CAIRO_STATUS_SUCCESS;
 }
+slim_hidden_def (cairo_device_acquire);
 
 /**
  * cairo_device_release:
@@ -453,6 +452,7 @@ cairo_device_release (cairo_device_t *device)
 
     CAIRO_MUTEX_UNLOCK (device->mutex);
 }
+slim_hidden_def (cairo_device_release);
 
 cairo_status_t
 _cairo_device_set_error (cairo_device_t *device,

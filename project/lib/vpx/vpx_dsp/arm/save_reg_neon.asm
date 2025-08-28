@@ -19,13 +19,15 @@
     AREA ||.text||, CODE, READONLY, ALIGN=2
 
 |vpx_push_neon| PROC
-    vstm            r0!, {d8-d15}
+    vst1.i64            {d8, d9, d10, d11}, [r0]!
+    vst1.i64            {d12, d13, d14, d15}, [r0]!
     bx              lr
 
     ENDP
 
 |vpx_pop_neon| PROC
-    vldm            r0!, {d8-d15}
+    vld1.i64            {d8, d9, d10, d11}, [r0]!
+    vld1.i64            {d12, d13, d14, d15}, [r0]!
     bx              lr
 
     ENDP

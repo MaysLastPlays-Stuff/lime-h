@@ -40,7 +40,6 @@ namespace lime {
 			static bool GetIOSTablet ();
 			#endif
 			static int GetNumDisplays ();
-			static int GetDeviceOrientation ();
 			static std::wstring* GetPlatformLabel ();
 			static std::wstring* GetPlatformName ();
 			static std::wstring* GetPlatformVersion ();
@@ -54,7 +53,6 @@ namespace lime {
 			#if defined(HX_WINDOWS) && !defined (HX_WINRT)
 			static bool SetWindowsConsoleMode (int handleType, int mode);
 			#endif
-			static void EnableDeviceOrientationChange(bool enable);
 
 		private:
 

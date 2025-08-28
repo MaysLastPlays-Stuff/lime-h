@@ -7,34 +7,29 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#ifndef VPX_VP8_ENCODER_ENCODEFRAME_H_
-#define VPX_VP8_ENCODER_ENCODEFRAME_H_
-
-#include "vp8/encoder/tokenize.h"
+#ifndef VP8_ENCODER_ENCODEFRAME_H_
+#define VP8_ENCODER_ENCODEFRAME_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+extern void vp8_activity_masking(VP8_COMP *cpi, MACROBLOCK *x);
 
-struct VP8_COMP;
-struct macroblock;
+extern void vp8_build_block_offsets(MACROBLOCK *x);
 
-void vp8_activity_masking(struct VP8_COMP *cpi, MACROBLOCK *x);
+extern void vp8_setup_block_ptrs(MACROBLOCK *x);
 
-void vp8_build_block_offsets(struct macroblock *x);
+extern void vp8_encode_frame(VP8_COMP *cpi);
 
-void vp8_setup_block_ptrs(struct macroblock *x);
+extern int vp8cx_encode_inter_macroblock(VP8_COMP *cpi, MACROBLOCK *x,
+        TOKENEXTRA **t,
+        int recon_yoffset, int recon_uvoffset,
+        int mb_row, int mb_col);
 
-void vp8_encode_frame(struct VP8_COMP *cpi);
-
-int vp8cx_encode_inter_macroblock(struct VP8_COMP *cpi, struct macroblock *x,
-                                  TOKENEXTRA **t, int recon_yoffset,
-                                  int recon_uvoffset, int mb_row, int mb_col);
-
-int vp8cx_encode_intra_macroblock(struct VP8_COMP *cpi, struct macroblock *x,
-                                  TOKENEXTRA **t);
+extern int vp8cx_encode_intra_macroblock(VP8_COMP *cpi, MACROBLOCK *x,
+        TOKENEXTRA **t);
 #ifdef __cplusplus
 }  // extern "C"
 #endif
 
-#endif  // VPX_VP8_ENCODER_ENCODEFRAME_H_
+#endif  // VP8_ENCODER_ENCODEFRAME_H_

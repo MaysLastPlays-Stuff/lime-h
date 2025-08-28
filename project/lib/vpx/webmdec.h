@@ -7,8 +7,8 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
-#ifndef VPX_WEBMDEC_H_
-#define VPX_WEBMDEC_H_
+#ifndef WEBMDEC_H_
+#define WEBMDEC_H_
 
 #include "./tools_common.h"
 
@@ -42,17 +42,22 @@ int file_is_webm(struct WebmInputContext *webm_ctx,
 
 // Reads a WebM Video Frame. Memory for the buffer is created, owned and managed
 // by this function. For the first call, |buffer| should be NULL and
-// |*buffer_size| should be 0. Once all the frames are read and used,
+// |*bytes_in_buffer| should be 0. Once all the frames are read and used,
 // webm_free() should be called, otherwise there will be a leak.
 // Parameters:
 //      webm_ctx - WebmInputContext object
 //      buffer - pointer where the frame data will be filled.
-//      buffer_size - pointer to buffer size.
+//      bytes_in_buffer - pointer to buffer size.
+//      buffer_size - unused TODO(vigneshv): remove this
 // Return values:
 //      0 - Success
 //      1 - End of Stream
 //     -1 - Error
-int webm_read_frame(struct WebmInputContext *webm_ctx, uint8_t **buffer,
+// TODO(vigneshv): Make the return values consistent across all functions in
+// this file.
+int webm_read_frame(struct WebmInputContext *webm_ctx,
+                    uint8_t **buffer,
+                    size_t *bytes_in_buffer,
                     size_t *buffer_size);
 
 // Guesses the frame rate of the input file based on the container timestamps.
@@ -66,4 +71,4 @@ void webm_free(struct WebmInputContext *webm_ctx);
 }  // extern "C"
 #endif
 
-#endif  // VPX_WEBMDEC_H_
+#endif  // WEBMDEC_H_

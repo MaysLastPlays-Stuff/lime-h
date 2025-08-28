@@ -11,10 +11,7 @@ namespace lime {
 
 	enum DropEventType {
 
-		DROP_FILE,
-		DROP_TEXT,
-		DROP_BEGIN,
-		DROP_COMPLETE
+		DROP_FILE
 
 	};
 

@@ -8,8 +8,9 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef VPX_VP8_DECODER_ERROR_CONCEALMENT_H_
-#define VPX_VP8_DECODER_ERROR_CONCEALMENT_H_
+
+#ifndef VP8_DECODER_ERROR_CONCEALMENT_H_
+#define VP8_DECODER_ERROR_CONCEALMENT_H_
 
 #include "onyxd_int.h"
 #include "ec_types.h"
@@ -31,11 +32,18 @@ void vp8_estimate_missing_mvs(VP8D_COMP *pbi);
 
 /* Interpolates all motion vectors for a macroblock mb at position
  * (mb_row, mb_col). */
-void vp8_interpolate_motion(MACROBLOCKD *mb, int mb_row, int mb_col,
-                            int mb_rows, int mb_cols);
+void vp8_interpolate_motion(MACROBLOCKD *mb,
+                            int mb_row, int mb_col,
+                            int mb_rows, int mb_cols,
+                            int mi_stride);
+
+/* Conceal a macroblock with corrupt residual.
+ * Copies the prediction signal to the reconstructed image.
+ */
+void vp8_conceal_corrupt_mb(MACROBLOCKD *xd);
 
 #ifdef __cplusplus
 }  // extern "C"
 #endif
 
-#endif  // VPX_VP8_DECODER_ERROR_CONCEALMENT_H_
+#endif  // VP8_DECODER_ERROR_CONCEALMENT_H_
