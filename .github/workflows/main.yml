@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           submodules: true
 
@@ -49,7 +49,7 @@ jobs:
           lime rebuild linux -64 -release -nocolor -verbose -nocffi
           lime rebuild hl -clean -release -nocolor -verbose -nocffi
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Linux-NDLL
           path: |
@@ -57,7 +57,7 @@ jobs:
             !**/.gitignore
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Linux64-NDLL
           path: |
@@ -65,7 +65,7 @@ jobs:
             !**/.gitignore
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Linux64-Hashlink
           path: |
@@ -95,7 +95,7 @@ jobs:
     runs-on: macos-12
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           submodules: true
 
@@ -139,7 +139,7 @@ jobs:
           lime rebuild macos -clean -release -64 -nocolor -verbose -nocffi
           lime rebuild hl -clean -release -nocolor -verbose -nocffi
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Mac64-NDLL
           path: |
@@ -147,7 +147,7 @@ jobs:
             !**/.gitignore
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Mac64-Hashlink
           path: |
@@ -177,7 +177,7 @@ jobs:
     runs-on: windows-latest
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           submodules: true
 
@@ -211,7 +211,7 @@ jobs:
           lime rebuild windows -64 -release -nocolor -verbose -nocffi
           lime rebuild hl -clean -release -nocolor -verbose -nocffi
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Windows-NDLL
           path: |
@@ -219,7 +219,7 @@ jobs:
             !**/.gitignore
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Windows64-NDLL
           path: |
@@ -227,13 +227,13 @@ jobs:
             !**/.gitignore
           if-no-files-found: error
 
-      # - uses: actions/upload-artifact@v3
+      # - uses: actions/upload-artifact@main
       #   with:
       #     name: Windows-Hashlink
       #     path: |
       #       templates/bin/hl/Windows
       #     if-no-files-found: error
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Windows64-Hashlink
           path: |
@@ -263,7 +263,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           submodules: true
 
@@ -313,7 +313,7 @@ jobs:
         run: |
           lime rebuild android -release -nocolor -verbose -nocffi -eval
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: Android-NDLL
           path: |
@@ -343,7 +343,7 @@ jobs:
     runs-on: macos-12
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           submodules: true
 
@@ -374,7 +374,7 @@ jobs:
         run: |
           lime rebuild ios -clean -release -verbose -nocolor -eval
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: iPhone-NDLL
           path: |
@@ -406,7 +406,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           submodules: true
 
@@ -497,7 +497,7 @@ jobs:
         run: |
           haxe svg.hxml
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: lime-haxelib
           path: |
@@ -512,7 +512,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
       - uses: krdlab/setup-haxe@v1
         with:
@@ -532,7 +532,7 @@ jobs:
         run: |
           haxe build.hxml
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@main
         with:
           name: lime-docs
           path: docs/pages
@@ -542,7 +542,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
       - uses: krdlab/setup-haxe@v1
         with:
@@ -585,7 +585,7 @@ jobs:
         haxe-version: [4.0.5, 4.1.5, 4.2.5, 4.3.1]
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
         with:
           submodules: true
 
@@ -684,7 +684,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
       - uses: krdlab/setup-haxe@v1
         with:
