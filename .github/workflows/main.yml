@@ -307,7 +307,7 @@ jobs:
         run: |
           lime config ANDROID_SDK $ANDROID_HOME -eval
           lime config ANDROID_NDK_ROOT ${{ steps.setup-ndk.outputs.ndk-path }} -eval
-          lime config JAVA_HOME $JAVA_HOME_24_X64 -eval
+          lime config JAVA_HOME $JAVA_HOME_17_X64 -eval
           lime config ANDROID_SETUP true -eval
           lime config -eval
 
